@@ -57,13 +57,21 @@ function freeVars(e: Expr): Set<string> {
 let nextTemp = 0;
 let nextFun = 0;
 
+const builtinNames = ["print_int", "print_bool", "print_unit", "now_ms"] as const;
+const builtinIndex: Record<string, number> = {
+  print_int: 0,
+  print_bool: 1,
+  print_unit: 2,
+  now_ms: 3
+};
+
 function freshTemp(): Temp {
   return nextTemp++;
 }
 
 export function toIR(e: Expr): IRModule {
   nextTemp = 0;
-  nextFun = 0;
+  nextFun = builtinNames.length;
   const funs: IRFun[] = [];
 
   function lower(expr: Expr, env: Map<string, Temp>): IR {
@@ -184,6 +192,12 @@ export function toIR(e: Expr): IRModule {
     return { tag: "MakeClosure", funIndex: index, free: freeTemps };
   }
 
-  const main = lower(e, new Map());
+  const env = new Map<string, Temp>();
+  for (const name of builtinNames) {
+    const t = freshTemp();
+    env.set(name, t);
+  }
+
+  const main = lower(e, env);
   return { main, funs, nextTemp };
 }
