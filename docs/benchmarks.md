@@ -18,4 +18,6 @@ UI.
 Open the web app and click **Run all benchmarks**. Each program is run in both
 engines with a warm‑up phase. The median execution time for the JS interpreter
 and the compiled Wasm module are shown along with min/mean/stdev statistics.
-Speedup is reported as `JS_time / Wasm_time`.
+Speedup is reported as `JS_time / Wasm_time`, falling back to the Wasm mean if
+the median is zero. Results are shown with additional decimal precision so that
+even extremely fast Wasm runs contribute a finite speedup value.
