@@ -217,7 +217,12 @@ export function toIR(e: Expr): IRModule {
     const envTemp = freshTemp();
     const envForBody = new Map<string, Temp>();
     envForBody.set(param, paramTemp);
-    const sortedFree = free.filter((x) => x !== param);
+    let selfTemp: Temp | undefined = undefined;
+    if (name !== undefined) {
+      selfTemp = freshTemp();
+      envForBody.set(name, selfTemp);
+    }
+    const sortedFree = free.filter((x) => x !== param && x !== name);
     sortedFree.sort();
     sortedFree.forEach((fv) => {
       const t = freshTemp();
@@ -231,6 +236,15 @@ export function toIR(e: Expr): IRModule {
         tag: "Let",
         id: t,
         value: { tag: "Proj", tuple: envTemp, index: i },
+        body: bodyIR
+      };
+    }
+    if (selfTemp !== undefined) {
+      const freeLocals = sortedFree.map((fv) => envForBody.get(fv)!);
+      bodyIR = {
+        tag: "Let",
+        id: selfTemp,
+        value: { tag: "MakeClosure", funIndex: index, free: freeLocals },
         body: bodyIR
       };
     }
