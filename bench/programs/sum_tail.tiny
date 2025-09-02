@@ -2,4 +2,5 @@ let rec sum n acc =
   if n <= 0 then acc
   else sum (n - 1) (acc + n)
 in
-sum 1000 0
+(* Run enough iterations to register non-zero Wasm time without overflowing the JS stack *)
+sum 10000 0
