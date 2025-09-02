@@ -8,10 +8,10 @@ let rec outer n acc =
           if k <= 0 then acc3
           else inner (k - 1) (acc3 + k)
         in
-        let acc2_next = inner 1000 acc2 in
+        let acc2_next = inner 100 acc2 in
         middle (m - 1) acc2_next
     in
-    let acc_next = middle 100 acc in
+    let acc_next = middle 10 acc in
     outer (n - 1) acc_next
 in
-outer 100 0
+outer 10 0

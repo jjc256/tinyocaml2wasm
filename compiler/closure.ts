@@ -70,6 +70,50 @@ function freshTemp(): Temp {
   return nextTemp++;
 }
 
+function shiftIR(ir: IR, offset: number): IR {
+  switch (ir.tag) {
+    case "ConstI":
+    case "ConstB":
+    case "Unit":
+      return ir;
+    case "Var":
+      return { tag: "Var", id: ir.id - offset };
+    case "Let":
+      return {
+        tag: "Let",
+        id: ir.id - offset,
+        value: shiftIR(ir.value, offset),
+        body: shiftIR(ir.body, offset)
+      };
+    case "If":
+      return {
+        tag: "If",
+        cond: shiftIR(ir.cond, offset),
+        then_: shiftIR(ir.then_, offset),
+        else_: shiftIR(ir.else_, offset)
+      };
+    case "Prim":
+      return {
+        tag: "Prim",
+        op: ir.op,
+        a: shiftIR(ir.a, offset),
+        b: shiftIR(ir.b, offset)
+      };
+    case "MakeClosure":
+      return {
+        tag: "MakeClosure",
+        funIndex: ir.funIndex,
+        free: ir.free.map((t) => t - offset)
+      };
+    case "Call":
+      return { tag: "Call", clos: ir.clos - offset, arg: ir.arg - offset };
+    case "Tuple":
+      return { tag: "Tuple", elts: ir.elts.map((t) => t - offset) };
+    case "Proj":
+      return { tag: "Proj", tuple: ir.tuple - offset, index: ir.index };
+  }
+}
+
 export function toIR(e: Expr): IRModule {
   nextTemp = 0;
   nextFun = builtinNames.length;
@@ -160,8 +204,14 @@ export function toIR(e: Expr): IRModule {
     }
   }
 
-  function lowerFun(name: string | undefined, param: string, body: Expr, env: Map<string, Temp>): IR {
+  function lowerFun(
+    name: string | undefined,
+    param: string,
+    body: Expr,
+    env: Map<string, Temp>
+  ): IR {
     const index = nextFun++;
+    const base = nextTemp;
     const free = Array.from(freeVars(body));
     const paramTemp = freshTemp();
     const envTemp = freshTemp();
@@ -184,7 +234,15 @@ export function toIR(e: Expr): IRModule {
         body: bodyIR
       };
     }
-    funs.push({ index, param: paramTemp, env: envTemp, body: bodyIR, freeLayout: sortedFree });
+    bodyIR = shiftIR(bodyIR, base);
+    funs.push({
+      index,
+      param: paramTemp - base,
+      env: envTemp - base,
+      body: bodyIR,
+      freeLayout: sortedFree
+    });
+    nextTemp = base;
     const freeTemps = sortedFree.map((fv) => {
       const t = env.get(fv);
       if (t === undefined) throw new Error(`Unbound free var ${fv}`);

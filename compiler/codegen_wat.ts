@@ -40,8 +40,8 @@ export function emitWAT(m: IRModule): WasmText {
   emitBuiltinWrappers(lines);
   m.funs
     .sort((a, b) => a.index - b.index)
-    .forEach((f) => emitFun(f, lines, m.nextTemp));
-  emitMain(lines, m.main, m.nextTemp);
+    .forEach((f) => emitFun(f, lines));
+  emitMain(lines, m.main);
   lines.push(")");
   return lines.join("\n");
 }
@@ -94,7 +94,47 @@ function emitBuiltinWrappers(lines: string[]) {
   }
 }
 
-function emitFun(f: IRFun, lines: string[], nTemps: number) {
+function maxTempIR(ir: IR): number {
+  switch (ir.tag) {
+    case "ConstI":
+    case "ConstB":
+    case "Unit":
+      return -1;
+    case "Var":
+      return ir.id;
+    case "Let": {
+      const a = maxTempIR(ir.value);
+      const b = maxTempIR(ir.body);
+      return Math.max(ir.id, a, b);
+    }
+    case "If": {
+      const a = maxTempIR(ir.cond);
+      const b = maxTempIR(ir.then_);
+      const c = maxTempIR(ir.else_);
+      return Math.max(a, b, c);
+    }
+    case "Prim": {
+      const a = maxTempIR(ir.a);
+      const b = maxTempIR(ir.b);
+      return Math.max(a, b);
+    }
+    case "MakeClosure":
+      return ir.free.length ? Math.max(...ir.free) : -1;
+    case "Call":
+      return Math.max(ir.clos, ir.arg);
+    case "Tuple":
+      return ir.elts.length ? Math.max(...ir.elts) : -1;
+    case "Proj":
+      return ir.tuple;
+  }
+}
+
+function maxTempFun(f: IRFun): number {
+  return Math.max(f.param, f.env, maxTempIR(f.body));
+}
+
+function emitFun(f: IRFun, lines: string[]) {
+  const nTemps = maxTempFun(f) + 1;
   lines.push(
     `  (func $f${f.index} (type $fn) (param $arg i32) (param $env i32) (result i32)`
   );
@@ -107,7 +147,8 @@ function emitFun(f: IRFun, lines: string[], nTemps: number) {
   lines.push("  )");
 }
 
-function emitMain(lines: string[], main: IR, nTemps: number) {
+function emitMain(lines: string[], main: IR) {
+  const nTemps = Math.max(maxTempIR(main) + 1, builtinWrappers.length);
   lines.push("  (func (export \"main\") (result i32)");
   emitLocals(lines, nTemps);
   emitBuiltinInits(lines);
