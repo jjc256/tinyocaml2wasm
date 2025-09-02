@@ -3,4 +3,5 @@ let rec loop n =
   if n <= 0 then 0
   else if t = t then loop (n - 1) else 0
 in
-loop 10000
+(* Reduce iteration count to avoid exceeding the WebAssembly stack depth during recursion. *)
+loop 1000
