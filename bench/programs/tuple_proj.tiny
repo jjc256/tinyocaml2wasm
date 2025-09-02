@@ -1,7 +1,21 @@
 let t = (1, 2, 3, 4, 5) in
-let rec loop n =
-  if n <= 0 then 0
-  else if t = t then loop (n - 1) else 0
+(* Three nested loops compare the tuple to itself one million times without deep recursion. *)
+let rec outer n acc =
+  if n <= 0 then acc
+  else
+    let rec middle m acc2 =
+      if m <= 0 then acc2
+      else
+        let rec inner k acc3 =
+          if k <= 0 then acc3
+          else
+            let acc3' = if t = t then acc3 + 1 else acc3 in
+            inner (k - 1) acc3'
+        in
+        let acc2' = inner 100 acc2 in
+        middle (m - 1) acc2'
+    in
+    let acc' = middle 100 acc in
+    outer (n - 1) acc'
 in
-(* Limit recursion depth to avoid overflowing the JS call stack *)
-loop 10000
+outer 100 0
