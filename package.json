@@ -6,12 +6,16 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "dev": "vite web",
-    "build": "tsc"
+    "build": "vite build"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
     "vite": "^5.4.0",
     "vitest": "^1.0.0",
     "wabt": "^1.0.34"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   }
 }
