@@ -202,4 +202,23 @@ describe("parser", () => {
     };
     expect(showAST(ast)).toEqual(showAST(expected));
   });
+
+  it("f x + g y parses as (f x) + (g y)", () => {
+    const ast = parse("f x + g y");
+    const expected: Expr = {
+      tag: "Prim",
+      op: "+",
+      left: {
+        tag: "App",
+        callee: { tag: "Var", name: "f" },
+        arg: { tag: "Var", name: "x" }
+      },
+      right: {
+        tag: "App",
+        callee: { tag: "Var", name: "g" },
+        arg: { tag: "Var", name: "y" }
+      }
+    };
+    expect(showAST(ast)).toEqual(showAST(expected));
+  });
 });

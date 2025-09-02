@@ -191,16 +191,7 @@ class Parser {
       const body = this.parseExpr();
       return { tag: "Fun", param, body };
     }
-    return this.parseApp();
-  }
-
-  private parseApp(): Expr {
-    let expr = this.parseCmp();
-    while (isAtomStart(this.peek())) {
-      const arg = this.parseAtom();
-      expr = { tag: "App", callee: expr, arg };
-    }
-    return expr;
+    return this.parseCmp();
   }
 
   private parseCmp(): Expr {
@@ -236,10 +227,19 @@ class Parser {
   }
 
   private parseMul(): Expr {
-    let expr = this.parseAtom();
+    let expr = this.parseApp();
     while (this.matchSymbol("*")) {
-      const right = this.parseAtom();
+      const right = this.parseApp();
       expr = { tag: "Prim", op: "*", left: expr, right };
+    }
+    return expr;
+  }
+
+  private parseApp(): Expr {
+    let expr = this.parseAtom();
+    while (isAtomStart(this.peek())) {
+      const arg = this.parseAtom();
+      expr = { tag: "App", callee: expr, arg };
     }
     return expr;
   }
