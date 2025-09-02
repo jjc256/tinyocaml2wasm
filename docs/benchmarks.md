@@ -8,9 +8,9 @@ UI.
 ## Programs
 
 - `fib_rec.tiny` – naive recursive Fibonacci.
-- `sum_tail.tiny` – tail recursive summation.
+- `sum_tail.tiny` – tail recursive summation over one million numbers.
 - `hof_map_fold.tiny` – exercises higher‑order functions and closures.
-- `tuple_proj.tiny` – creates a tuple and repeatedly compares it to itself,
+- `tuple_proj.tiny` – creates a tuple and compares it to itself one million times,
   stressing tuple loads.
 
 ## Running
