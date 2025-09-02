@@ -58,64 +58,71 @@ export function evalExpr(e: Expr, host: Host): Val {
   return evalExprEnv(e, env, host);
 }
 
+// Evaluate expressions without growing the JS call stack on tail calls.
 function evalExprEnv(e: Expr, env: Env, host: Host): Val {
-  switch (e.tag) {
-    case "Int":
-      return { tag: "VInt", v: e.value };
-    case "Bool":
-      return { tag: "VBool", v: e.value };
-    case "Unit":
-      return { tag: "VUnit" };
-    case "Var": {
-      const v = env.get(e.name);
-      if (!v) throw new Error(`Unbound variable ${e.name}`);
-      return v;
-    }
-    case "Let": {
-      const val = evalExprEnv(e.value, env, host);
-      const newEnv = new Map(env);
-      newEnv.set(e.name, val);
-      return evalExprEnv(e.body, newEnv, host);
-    }
-    case "LetRec": {
-      const newEnv = new Map(env);
-      const clo: Val = {
-        tag: "VClosure",
-        param: e.param,
-        body: e.body,
-        env: newEnv
-      };
-      newEnv.set(e.name, clo);
-      return evalExprEnv(e.inExpr, newEnv, host);
-    }
-    case "Fun":
-      return { tag: "VClosure", param: e.param, body: e.body, env };
-    case "App": {
-      const fnVal = evalExprEnv(e.callee, env, host);
-      const argVal = evalExprEnv(e.arg, env, host);
-      if (fnVal.tag === "VClosure") {
-        const callEnv = new Map(fnVal.env);
-        callEnv.set(fnVal.param, argVal);
-        return evalExprEnv(fnVal.body, callEnv, host);
-      } else if (fnVal.tag === "VBuiltin") {
-        return fnVal.fn(argVal, host);
+  while (true) {
+    switch (e.tag) {
+      case "Int":
+        return { tag: "VInt", v: e.value };
+      case "Bool":
+        return { tag: "VBool", v: e.value };
+      case "Unit":
+        return { tag: "VUnit" };
+      case "Var": {
+        const v = env.get(e.name);
+        if (!v) throw new Error(`Unbound variable ${e.name}`);
+        return v;
       }
-      throw new Error("Attempt to call non-function");
+      case "Let": {
+        const val = evalExprEnv(e.value, env, host);
+        const newEnv = new Map(env);
+        newEnv.set(e.name, val);
+        e = e.body;
+        env = newEnv;
+        continue;
+      }
+      case "LetRec": {
+        const newEnv = new Map(env);
+        const clo: Val = {
+          tag: "VClosure",
+          param: e.param,
+          body: e.body,
+          env: newEnv
+        };
+        newEnv.set(e.name, clo);
+        e = e.inExpr;
+        env = newEnv;
+        continue;
+      }
+      case "Fun":
+        return { tag: "VClosure", param: e.param, body: e.body, env };
+      case "App": {
+        const fnVal = evalExprEnv(e.callee, env, host);
+        const argVal = evalExprEnv(e.arg, env, host);
+        if (fnVal.tag === "VClosure") {
+          env = new Map(fnVal.env);
+          env.set(fnVal.param, argVal);
+          e = fnVal.body;
+          continue;
+        } else if (fnVal.tag === "VBuiltin") {
+          return fnVal.fn(argVal, host);
+        }
+        throw new Error("Attempt to call non-function");
+      }
+      case "If": {
+        const cond = evalExprEnv(e.cond, env, host);
+        if (cond.tag !== "VBool") throw new Error("if condition not boolean");
+        e = cond.v ? e.then_ : e.else_;
+        continue;
+      }
+      case "Prim": {
+        const l = evalExprEnv(e.left, env, host);
+        const r = evalExprEnv(e.right, env, host);
+        return evalPrim(e.op, l, r);
+      }
+      case "Tuple":
+        return { tag: "VTuple", elts: e.elts.map((x) => evalExprEnv(x, env, host)) };
     }
-    case "If": {
-      const cond = evalExprEnv(e.cond, env, host);
-      if (cond.tag !== "VBool") throw new Error("if condition not boolean");
-      return cond.v
-        ? evalExprEnv(e.then_, env, host)
-        : evalExprEnv(e.else_, env, host);
-    }
-    case "Prim": {
-      const l = evalExprEnv(e.left, env, host);
-      const r = evalExprEnv(e.right, env, host);
-      return evalPrim(e.op, l, r);
-    }
-    case "Tuple":
-      return { tag: "VTuple", elts: e.elts.map((x) => evalExprEnv(x, env, host)) };
   }
 }
 
