@@ -34,5 +34,5 @@ INT   := [0-9]+
 
 ## Benchmarks
 
-Runs benchmark programs in both JS and Wasm engines. Each test warms both engines, randomizes run order, and reports median, min, mean, and stdev. "Run all benchmarks" reproduces results with a JS vs Wasm speedup chart and table.
+Runs benchmark programs in both JS and Wasm engines. Each test warms both engines, uses a sample size of ten iterations, randomizes run order, and reports median, min, mean, and stdev. "Run all benchmarks" reproduces results with a JS vs Wasm speedup chart and table.
 
