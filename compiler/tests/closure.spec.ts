@@ -39,4 +39,17 @@ describe("closure conversion", () => {
     `;
     expect(() => toIR(parse(src))).not.toThrow();
   });
+
+  it("does not capture its own name in recursive helpers", () => {
+    const src = `
+      let rec loop n =
+        fun acc ->
+          if n <= 0 then acc else (loop (n - 1)) (acc + 1)
+      in
+      (loop 3) 0
+    `;
+    const mod = toIR(parse(src));
+    expect(mod.funs[0].freeLayout).toContain("loop");
+    expect(mod.funs[1].freeLayout).not.toContain("loop");
+  });
 });
