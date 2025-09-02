@@ -28,19 +28,18 @@ export function emitWAT(m: IRModule): WasmText {
     `  (global $hp (mut i32) (i32.const ${HEAP_BASE}))`
   );
   lines.push("  (type $fn (func (param i32 i32) (result i32)))");
+  const sortedFuns = [...m.funs].sort((a, b) => a.index - b.index);
   const tableElems = [
     "$wrap_print_int",
     "$wrap_print_bool",
     "$wrap_print_unit",
     "$wrap_now_ms",
-    ...m.funs.map((f) => `$f${f.index}`)
+    ...sortedFuns.map((f) => `$f${f.index}`)
   ];
   lines.push(`  (table funcref (elem ${tableElems.join(" ")}))`);
   emitAlloc(lines);
   emitBuiltinWrappers(lines);
-  m.funs
-    .sort((a, b) => a.index - b.index)
-    .forEach((f) => emitFun(f, lines));
+  sortedFuns.forEach((f) => emitFun(f, lines));
   emitMain(lines, m.main);
   lines.push(")");
   return lines.join("\n");
