@@ -53,4 +53,23 @@ describe("codegen_wat", () => {
     expect(logs).toEqual([41, false, "unit"]);
     expect(res).toBe(123);
   });
+
+  it("hof_map_fold", async () => {
+    const src = `
+let rec map f n =
+  if n <= 0 then 0
+  else (f n) + map f (n - 1)
+in
+let rec fold f n acc =
+  if n <= 0 then acc
+  else fold f (n - 1) (f acc n)
+in
+let inc x = x + 1 in
+let add a b = a + b in
+let mapped = map inc 100 in
+fold add 100 mapped
+`;
+    const { res } = await runWat(src);
+    expect(res).toBe(10200);
+  });
 });
