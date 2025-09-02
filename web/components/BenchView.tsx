@@ -39,7 +39,7 @@ export default function BenchView() {
       for (const eng of order) {
         stats[eng] = await runBench(src, {
           engine: eng,
-          iterations: 2,
+          iterations: 10,
           warmup: 1
         });
       }
