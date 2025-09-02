@@ -43,7 +43,10 @@ export default function BenchView() {
           warmup: 1
         });
       }
-      const speedup = stats.js.median / stats.wasm.median;
+      const wasmTime =
+        stats.wasm.median > 0 ? stats.wasm.median : stats.wasm.mean;
+      const speedup =
+        wasmTime > 0 ? stats.js.median / wasmTime : NaN;
       out[p.name] = { js: stats.js, wasm: stats.wasm, speedup };
     }
     setResults(out);
@@ -86,7 +89,8 @@ export default function BenchView() {
               />
             </div>
             <div style={{ fontSize: "12px" }}>
-              Speedup: {r.speedup.toFixed(2)}x
+              Speedup:{" "}
+              {Number.isFinite(r.speedup) ? `${r.speedup.toFixed(2)}x` : "N/A"}
             </div>
             <table
               style={{
@@ -109,10 +113,10 @@ export default function BenchView() {
                 {engines.map((e) => (
                   <tr key={e}>
                     <td>{e}</td>
-                    <td>{r[e].min.toFixed(2)}</td>
-                    <td>{r[e].median.toFixed(2)}</td>
-                    <td>{r[e].mean.toFixed(2)}</td>
-                    <td>{r[e].stdev.toFixed(2)}</td>
+                    <td>{r[e].min.toFixed(4)}</td>
+                    <td>{r[e].median.toFixed(4)}</td>
+                    <td>{r[e].mean.toFixed(4)}</td>
+                    <td>{r[e].stdev.toFixed(4)}</td>
                   </tr>
                 ))}
               </tbody>
