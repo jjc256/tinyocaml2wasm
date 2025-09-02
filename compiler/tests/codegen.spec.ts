@@ -9,7 +9,7 @@ async function runWat(src: string, hostImpl?: any) {
   const wat = emitWAT(ir);
   const wabtMod = await wabt();
   const mod = wabtMod.parseWat("test.wat", wat);
-  const { buffer } = mod.toBinary({});
+  const { buffer } = mod.toBinary({}) as { buffer: Uint8Array };
   const host = hostImpl || {};
   const imports = {
     host: {
@@ -27,7 +27,10 @@ async function runWat(src: string, hostImpl?: any) {
       }
     }
   };
-  const { instance } = await WebAssembly.instantiate(buffer, imports);
+  const { instance } = (await WebAssembly.instantiate(
+    buffer,
+    imports
+  )) as unknown as WebAssembly.WebAssemblyInstantiatedSource;
   const res = (instance.exports.main as Function)();
   return { res, host };
 }
