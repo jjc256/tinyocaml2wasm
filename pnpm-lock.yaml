@@ -11,6 +11,9 @@ importers:
       typescript:
         specifier: ^5.4.0
         version: 5.9.2
+      vite:
+        specifier: ^5.4.0
+        version: 5.4.19
       vitest:
         specifier: ^1.0.0
         version: 1.6.1
