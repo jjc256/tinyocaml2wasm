@@ -5,18 +5,18 @@ type Engine = "js" | "wasm";
 type Stats = { min: number; median: number; mean: number; stdev: number };
 type BenchResult = { js: Stats; wasm: Stats; speedup: number };
 
-const programs = [
-  { name: "fib_rec", file: "fib_rec.tiny" },
-  { name: "sum_tail", file: "sum_tail.tiny" },
-  { name: "hof_map_fold", file: "hof_map_fold.tiny" },
-  { name: "tuple_proj", file: "tuple_proj.tiny" }
-];
+// Import benchmark sources as raw strings so Vite bundles them.
+import fibRec from "../../bench/programs/fib_rec.tiny?raw";
+import sumTail from "../../bench/programs/sum_tail.tiny?raw";
+import hofMapFold from "../../bench/programs/hof_map_fold.tiny?raw";
+import tupleProj from "../../bench/programs/tuple_proj.tiny?raw";
 
-async function loadProgram(file: string): Promise<string> {
-  const url = new URL(`../../bench/programs/${file}`, import.meta.url);
-  const res = await fetch(url);
-  return await res.text();
-}
+const programs: { name: string; src: string }[] = [
+  { name: "fib_rec", src: fibRec },
+  { name: "sum_tail", src: sumTail },
+  { name: "hof_map_fold", src: hofMapFold },
+  { name: "tuple_proj", src: tupleProj }
+];
 
 export default function BenchView() {
   const [running, setRunning] = useState(false);
@@ -26,7 +26,7 @@ export default function BenchView() {
     setRunning(true);
     const out: Record<string, BenchResult> = {};
     for (const p of programs) {
-      const src = await loadProgram(p.file);
+      const src = p.src;
       const order: Engine[] = ["js", "wasm"];
       for (let i = order.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
