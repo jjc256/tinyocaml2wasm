@@ -23,7 +23,7 @@ export function emitWAT(m: IRModule): WasmText {
   lines.push(
     "  (import \"host\" \"now_ms\" (func $now_ms (result i32)))"
   );
-  lines.push("  (memory (export \"mem\") 2)");
+  lines.push("  (memory (export \"mem\") 10)");
   lines.push(
     `  (global $hp (mut i32) (i32.const ${HEAP_BASE}))`
   );
