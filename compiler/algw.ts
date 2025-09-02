@@ -48,19 +48,19 @@ function bind(id: number, ty: Ty): Subst {
   return s;
 }
 
-function unify(t1: Ty, t2: Ty): Subst {
+function unify(t1: Ty, t2: Ty, ctx: string): Subst {
   if (t1.tag === "TFun" && t2.tag === "TFun") {
-    const s1 = unify(t1.from, t2.from);
-    const s2 = unify(applyTy(s1, t1.to), applyTy(s1, t2.to));
+    const s1 = unify(t1.from, t2.from, ctx);
+    const s2 = unify(applyTy(s1, t1.to), applyTy(s1, t2.to), ctx);
     return compose(s2, s1);
   }
   if (t1.tag === "TTuple" && t2.tag === "TTuple") {
     if (t1.elts.length !== t2.elts.length) {
-      throw new Error(`Mismatch(expected=${showTy(t1)}, actual=${showTy(t2)})`);
+      throw new Error(`Mismatch(expected=${showTy(t1)}, actual=${showTy(t2)}, context=${ctx})`);
     }
     let s = emptySubst();
     for (let i = 0; i < t1.elts.length; i++) {
-      const s1 = unify(applyTy(s, t1.elts[i]), applyTy(s, t2.elts[i]));
+      const s1 = unify(applyTy(s, t1.elts[i]), applyTy(s, t2.elts[i]), ctx);
       s = compose(s1, s);
     }
     return s;
@@ -68,7 +68,7 @@ function unify(t1: Ty, t2: Ty): Subst {
   if (t1.tag === "TVar") return bind(t1.id, t2);
   if (t2.tag === "TVar") return bind(t2.id, t1);
   if (t1.tag === t2.tag) return emptySubst();
-  throw new Error(`Mismatch(expected=${showTy(t1)}, actual=${showTy(t2)})`);
+  throw new Error(`Mismatch(expected=${showTy(t1)}, actual=${showTy(t2)}, context=${ctx})`);
 }
 
 export function infer(env: TyEnv, e: Expr): InferResult {
@@ -88,20 +88,27 @@ export function infer(env: TyEnv, e: Expr): InferResult {
       const r1 = infer(env, e.left);
       const env1 = applyEnv(r1.subst, env);
       const r2 = infer(env1, e.right);
-      const s3 = unify(applyTy(r2.subst, r1.ty), tInt());
-      const s4 = unify(applyTy(s3, r2.ty), tInt());
-      const subst = compose(s4, compose(s3, compose(r2.subst, r1.subst)));
+      let subst = compose(r2.subst, r1.subst);
+      try {
+        const s3 = unify(applyTy(r2.subst, r1.ty), tInt(), "prim left");
+        const s4 = unify(applyTy(s3, r2.ty), tInt(), "prim right");
+        subst = compose(s4, compose(s3, subst));
+      } catch (_err) {
+        const lTy = applyTy(subst, r1.ty);
+        const rTy = applyTy(subst, r2.ty);
+        throw new Error(`PrimOpType(op=${e.op}, left=${showTy(lTy)}, right=${showTy(rTy)})`);
+      }
       const resultTy = e.op === "+" || e.op === "-" || e.op === "*" ? tInt() : tBool();
       return { subst, ty: applyTy(subst, resultTy) };
     }
     case "If": {
       const rc = infer(env, e.cond);
-      const sBool = unify(rc.ty, tBool());
+      const sBool = unify(rc.ty, tBool(), "if condition");
       const env1 = applyEnv(compose(sBool, rc.subst), env);
       const rt = infer(env1, e.then_);
       const env2 = applyEnv(rt.subst, env1);
       const re = infer(env2, e.else_);
-      const s3 = unify(applyTy(re.subst, rt.ty), re.ty);
+      const s3 = unify(applyTy(re.subst, rt.ty), re.ty, "if branches");
       const subst = compose(s3, compose(re.subst, compose(rt.subst, compose(sBool, rc.subst))));
       return { subst, ty: applyTy(subst, rt.ty) };
     }
@@ -116,7 +123,7 @@ export function infer(env: TyEnv, e: Expr): InferResult {
       const env1 = applyEnv(r1.subst, env);
       const r2 = infer(env1, e.arg);
       const b = freshTVar();
-      const s3 = unify(applyTy(r2.subst, r1.ty), tFun(r2.ty, b));
+      const s3 = unify(applyTy(r2.subst, r1.ty), tFun(r2.ty, b), "application");
       const subst = compose(s3, compose(r2.subst, r1.subst));
       return { subst, ty: applyTy(subst, b) };
     }
@@ -135,7 +142,7 @@ export function infer(env: TyEnv, e: Expr): InferResult {
       const env1 = envExtend(env, e.name, { forAll: [], ty: tFun(a, b) });
       const env2 = envExtend(env1, e.param, { forAll: [], ty: a });
       const r1 = infer(env2, e.body);
-      const s2 = unify(r1.ty, b);
+      const s2 = unify(r1.ty, b, "let rec body");
       const s1 = compose(s2, r1.subst);
       const env3 = applyEnv(s1, env);
       const scf = generalize(env3, applyTy(s1, tFun(a, b)));
