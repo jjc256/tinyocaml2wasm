@@ -6,6 +6,21 @@ class ParseError extends Error {
   }
 }
 
+function formatToken(t: Token): string {
+  switch (t.type) {
+    case "int":
+      return String(t.value);
+    case "bool":
+      return String(t.value);
+    case "ident":
+    case "keyword":
+    case "symbol":
+      return t.value;
+    case "eof":
+      return "<eof>";
+  }
+}
+
 type Token =
   | { type: "int"; value: number; line: number; col: number }
   | { type: "bool"; value: boolean; line: number; col: number }
@@ -73,7 +88,7 @@ function tokenize(input: string): Token[] {
       tokens.push({ type: "symbol", value: c, line, col: startCol });
       i++; col++; continue;
     }
-    throw new ParseError(line, col, `unexpected character '${c}'`);
+    throw new ParseError(line, col, `'${c}' unexpected`);
   }
   tokens.push({ type: "eof", line, col });
   return tokens;
@@ -101,10 +116,10 @@ class Parser {
     }
     return false;
   }
-  private expectSymbol(sym: string): void {
+  private expectSymbol(sym: string, ctx: string): void {
     if (!this.matchSymbol(sym)) {
       const t = this.peek();
-      throw new ParseError(t.line, t.col, `'${sym}' expected`);
+      throw new ParseError(t.line, t.col, `${formatToken(t)} unexpected after ${ctx}`);
     }
   }
   private matchKeyword(kw: string): boolean {
@@ -115,51 +130,51 @@ class Parser {
     }
     return false;
   }
-  private expectKeyword(kw: string): void {
+  private expectKeyword(kw: string, ctx: string): void {
     if (!this.matchKeyword(kw)) {
       const t = this.peek();
-      throw new ParseError(t.line, t.col, `'${kw}' expected`);
+      throw new ParseError(t.line, t.col, `${formatToken(t)} unexpected after ${ctx}`);
     }
   }
-  private expectIdent(): string {
+  private expectIdent(ctx: string): string {
     const t = this.peek();
     if (t.type === "ident") {
       this.consume();
       return t.value;
     }
-    throw new ParseError(t.line, t.col, "identifier expected");
+    throw new ParseError(t.line, t.col, `${formatToken(t)} unexpected after ${ctx}`);
   }
 
   parseExpr(): Expr {
     if (this.matchKeyword("let")) {
       if (this.matchKeyword("rec")) {
-        const name = this.expectIdent();
-        const param = this.expectIdent();
-        this.expectSymbol("=");
+        const name = this.expectIdent("let rec");
+        const param = this.expectIdent("let rec");
+        this.expectSymbol("=","let rec binding");
         const body = this.parseExpr();
-        this.expectKeyword("in");
+        this.expectKeyword("in","let rec binding");
         const inExpr = this.parseExpr();
         return { tag: "LetRec", name, param, body, inExpr };
       } else {
-        const name = this.expectIdent();
-        this.expectSymbol("=");
+        const name = this.expectIdent("let");
+        this.expectSymbol("=","let binding");
         const value = this.parseExpr();
-        this.expectKeyword("in");
+        this.expectKeyword("in","let binding");
         const body = this.parseExpr();
         return { tag: "Let", name, value, body };
       }
     }
     if (this.matchKeyword("if")) {
       const cond = this.parseExpr();
-      this.expectKeyword("then");
+      this.expectKeyword("then","if expression");
       const then_ = this.parseExpr();
-      this.expectKeyword("else");
+      this.expectKeyword("else","if expression");
       const else_ = this.parseExpr();
       return { tag: "If", cond, then_, else_ };
     }
     if (this.matchKeyword("fun")) {
-      const param = this.expectIdent();
-      this.expectSymbol("->");
+      const param = this.expectIdent("fun");
+      this.expectSymbol("->","fun parameter");
       const body = this.parseExpr();
       return { tag: "Fun", param, body };
     }
@@ -241,14 +256,14 @@ class Parser {
         do {
           elts.push(this.parseExpr());
         } while (this.matchSymbol(","));
-        this.expectSymbol(")");
+        this.expectSymbol(")","tuple");
         return { tag: "Tuple", elts };
       } else {
-        this.expectSymbol(")");
+        this.expectSymbol(")","grouping");
         return first;
       }
     }
-    throw new ParseError(t.line, t.col, "unexpected token");
+    throw new ParseError(t.line, t.col, `${formatToken(t)} unexpected after atom`);
   }
 }
 
@@ -258,7 +273,7 @@ export function parse(input: string): Expr {
   const expr = p.parseExpr();
   const t = p.peek();
   if (t.type !== "eof") {
-    throw new ParseError(t.line, t.col, "extra input");
+    throw new ParseError(t.line, t.col, `${formatToken(t)} unexpected after expression`);
   }
   return expr;
 }
