@@ -56,4 +56,16 @@ describe("codegen_wat", () => {
     expect(logs).toEqual([41, false, "unit"]);
     expect(res).toBe(123);
   });
+
+  it("fib", async () => {
+    const src = `let fib n =
+  let rec aux a b i =
+    if i = n then a
+    else aux b (a + b) (i + 1)
+  in
+  aux 0 1 0
+in fib 25`;
+    const { res } = await runWat(src);
+    expect(res).toBe(75025);
+  });
 });
