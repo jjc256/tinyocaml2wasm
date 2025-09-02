@@ -26,4 +26,17 @@ describe("closure conversion", () => {
     const mk = getMakeClosure(mod.main)!;
     expect(mk.funIndex).toBe(funIndex);
   });
+
+  it("handles nested let rec with multiple params", () => {
+    const src = `
+      let rec outer n acc =
+        let rec inner k acc2 =
+          if k <= 0 then acc2 else inner (k - 1) (acc2 + k)
+        in
+        inner 10 acc
+      in
+      outer 5 0
+    `;
+    expect(() => toIR(parse(src))).not.toThrow();
+  });
 });

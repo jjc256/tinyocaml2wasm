@@ -19,6 +19,7 @@ function freeVars(e: Expr): Set<string> {
     case "LetRec": {
       const bodyFv = freeVars(e.body);
       bodyFv.delete(e.name);
+      bodyFv.delete(e.param);
       const inFv = freeVars(e.inExpr);
       inFv.delete(e.name);
       return new Set([...bodyFv, ...inFv]);
