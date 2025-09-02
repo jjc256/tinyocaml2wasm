@@ -1,0 +1,6 @@
+let t = (1, 2, 3, 4, 5) in
+let rec loop n =
+  if n <= 0 then 0
+  else if t = t then loop (n - 1) else 0
+in
+loop 10000
