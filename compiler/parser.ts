@@ -147,19 +147,32 @@ class Parser {
 
   parseExpr(): Expr {
     if (this.matchKeyword("let")) {
-      if (this.matchKeyword("rec")) {
-        const name = this.expectIdent("let rec");
-        const param = this.expectIdent("let rec");
-        this.expectSymbol("=","let rec binding");
-        const body = this.parseExpr();
-        this.expectKeyword("in","let rec binding");
+      const isRec = this.matchKeyword("rec");
+      const name = this.expectIdent(isRec ? "let rec" : "let");
+      const params: string[] = [];
+      while (this.peek().type === "ident") {
+        params.push(this.expectIdent(isRec ? "let rec parameter" : "let parameter"));
+      }
+      if (isRec) {
+        if (params.length === 0) {
+          const t = this.peek();
+          throw new ParseError(t.line, t.col, `${formatToken(t)} unexpected after let rec`);
+        }
+        this.expectSymbol("=", "let rec binding");
+        let body = this.parseExpr();
+        for (let i = params.length - 1; i >= 1; i--) {
+          body = { tag: "Fun", param: params[i], body };
+        }
+        this.expectKeyword("in", "let rec binding");
         const inExpr = this.parseExpr();
-        return { tag: "LetRec", name, param, body, inExpr };
+        return { tag: "LetRec", name, param: params[0], body, inExpr };
       } else {
-        const name = this.expectIdent("let");
-        this.expectSymbol("=","let binding");
-        const value = this.parseExpr();
-        this.expectKeyword("in","let binding");
+        this.expectSymbol("=", "let binding");
+        let value = this.parseExpr();
+        for (let i = params.length - 1; i >= 0; i--) {
+          value = { tag: "Fun", param: params[i], body: value };
+        }
+        this.expectKeyword("in", "let binding");
         const body = this.parseExpr();
         return { tag: "Let", name, value, body };
       }

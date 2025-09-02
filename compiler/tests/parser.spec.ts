@@ -116,4 +116,90 @@ describe("parser", () => {
     };
     expect(showAST(ast)).toEqual(showAST(expected));
   });
+
+  it("let add a b = a + b in add 1 2", () => {
+    const src = "let add a b = a + b in add 1 2";
+    const ast = parse(src);
+    const expected: Expr = {
+      tag: "Let",
+      name: "add",
+      value: {
+        tag: "Fun",
+        param: "a",
+        body: {
+          tag: "Fun",
+          param: "b",
+          body: {
+            tag: "Prim",
+            op: "+",
+            left: { tag: "Var", name: "a" },
+            right: { tag: "Var", name: "b" }
+          }
+        }
+      },
+      body: {
+        tag: "App",
+        callee: {
+          tag: "App",
+          callee: { tag: "Var", name: "add" },
+          arg: { tag: "Int", value: 1 }
+        },
+        arg: { tag: "Int", value: 2 }
+      }
+    };
+    expect(showAST(ast)).toEqual(showAST(expected));
+  });
+
+  it("let rec sum n acc = ...", () => {
+    const src = "let rec sum n acc = if n <= 0 then acc else sum (n - 1) (acc + n) in sum 10 0";
+    const ast = parse(src);
+    const expected: Expr = {
+      tag: "LetRec",
+      name: "sum",
+      param: "n",
+      body: {
+        tag: "Fun",
+        param: "acc",
+        body: {
+          tag: "If",
+          cond: {
+            tag: "Prim",
+            op: "<=",
+            left: { tag: "Var", name: "n" },
+            right: { tag: "Int", value: 0 }
+          },
+          then_: { tag: "Var", name: "acc" },
+          else_: {
+            tag: "App",
+            callee: {
+              tag: "App",
+              callee: { tag: "Var", name: "sum" },
+              arg: {
+                tag: "Prim",
+                op: "-",
+                left: { tag: "Var", name: "n" },
+                right: { tag: "Int", value: 1 }
+              }
+            },
+            arg: {
+              tag: "Prim",
+              op: "+",
+              left: { tag: "Var", name: "acc" },
+              right: { tag: "Var", name: "n" }
+            }
+          }
+        }
+      },
+      inExpr: {
+        tag: "App",
+        callee: {
+          tag: "App",
+          callee: { tag: "Var", name: "sum" },
+          arg: { tag: "Int", value: 10 }
+        },
+        arg: { tag: "Int", value: 0 }
+      }
+    };
+    expect(showAST(ast)).toEqual(showAST(expected));
+  });
 });
