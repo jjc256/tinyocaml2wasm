@@ -1,4 +1,3 @@
-(* Triple-nested loops perform one million additions while keeping recursion depth low. *)
 let rec outer n acc =
   if n <= 0 then acc
   else
@@ -9,10 +8,10 @@ let rec outer n acc =
           if k <= 0 then acc3
           else inner (k - 1) (acc3 + k)
         in
-        let acc2' = inner 100 acc2 in
-        middle (m - 1) acc2'
+        let acc2_next = inner 1000 acc2 in
+        middle (m - 1) acc2_next
     in
-    let acc' = middle 100 acc in
-    outer (n - 1) acc'
+    let acc_next = middle 100 acc in
+    outer (n - 1) acc_next
 in
 outer 100 0

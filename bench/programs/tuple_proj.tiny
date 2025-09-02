@@ -1,5 +1,4 @@
 let t = (1, 2, 3, 4, 5) in
-(* Three nested loops compare the tuple to itself one million times without deep recursion. *)
 let rec outer n acc =
   if n <= 0 then acc
   else
@@ -9,13 +8,13 @@ let rec outer n acc =
         let rec inner k acc3 =
           if k <= 0 then acc3
           else
-            let acc3' = if t = t then acc3 + 1 else acc3 in
-            inner (k - 1) acc3'
+            let acc3_next = if t = t then acc3 + 1 else acc3 in
+            inner (k - 1) acc3_next
         in
-        let acc2' = inner 100 acc2 in
-        middle (m - 1) acc2'
+        let acc2_next = inner 1000 acc2 in
+        middle (m - 1) acc2_next
     in
-    let acc' = middle 100 acc in
-    outer (n - 1) acc'
+    let acc_next = middle 100 acc in
+    outer (n - 1) acc_next
 in
 outer 100 0
