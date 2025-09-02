@@ -262,7 +262,7 @@ function emitIR(ir: IR, lines: string[], indent: string) {
       lines.push(`${indent}i32.const ${nWords}`);
       lines.push(`${indent}i32.const ${TAG_TUPLE}`);
       lines.push(`${indent}call $alloc`);
-      lines.push(`${indent}local.tee $tmp`);
+      lines.push(`${indent}local.set $tmp`);
       for (let i = 0; i < ir.elts.length; i++) {
         lines.push(`${indent}local.get $tmp`);
         lines.push(`${indent}i32.const ${8 + i * 4}`);
