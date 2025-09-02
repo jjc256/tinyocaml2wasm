@@ -1,5 +1,18 @@
-let rec sum n acc =
+(* Triple-nested loops perform one million additions while keeping recursion depth low. *)
+let rec outer n acc =
   if n <= 0 then acc
-  else sum (n - 1) (acc + n)
+  else
+    let rec middle m acc2 =
+      if m <= 0 then acc2
+      else
+        let rec inner k acc3 =
+          if k <= 0 then acc3
+          else inner (k - 1) (acc3 + k)
+        in
+        let acc2' = inner 100 acc2 in
+        middle (m - 1) acc2'
+    in
+    let acc' = middle 100 acc in
+    outer (n - 1) acc'
 in
-sum 1000 0
+outer 100 0
