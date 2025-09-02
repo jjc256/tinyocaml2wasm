@@ -1,10 +1,125 @@
-import React from "react";
+import React, { useState } from "react";
+import { runBench } from "../lib/timing";
+
+type Engine = "js" | "wasm";
+type Stats = { min: number; median: number; mean: number; stdev: number };
+type BenchResult = { js: Stats; wasm: Stats; speedup: number };
+
+const programs = [
+  { name: "fib_rec", file: "fib_rec.tiny" },
+  { name: "sum_tail", file: "sum_tail.tiny" },
+  { name: "hof_map_fold", file: "hof_map_fold.tiny" },
+  { name: "tuple_proj", file: "tuple_proj.tiny" }
+];
+
+async function loadProgram(file: string): Promise<string> {
+  const url = new URL(`../../bench/programs/${file}`, import.meta.url);
+  const res = await fetch(url);
+  return await res.text();
+}
 
 export default function BenchView() {
+  const [running, setRunning] = useState(false);
+  const [results, setResults] = useState<Record<string, BenchResult>>({});
+
+  async function runAll() {
+    setRunning(true);
+    const out: Record<string, BenchResult> = {};
+    for (const p of programs) {
+      const src = await loadProgram(p.file);
+      const order: Engine[] = ["js", "wasm"];
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      const stats: Record<Engine, Stats> = {
+        js: { min: 0, median: 0, mean: 0, stdev: 0 },
+        wasm: { min: 0, median: 0, mean: 0, stdev: 0 }
+      };
+      for (const eng of order) {
+        stats[eng] = await runBench(src, {
+          engine: eng,
+          iterations: 5,
+          warmup: 1
+        });
+      }
+      const speedup = stats.js.median / stats.wasm.median;
+      out[p.name] = { js: stats.js, wasm: stats.wasm, speedup };
+    }
+    setResults(out);
+    setRunning(false);
+  }
+
+  const engines: Engine[] = ["js", "wasm"];
+
   return (
-    <div style={{ width: "300px", borderLeft: "1px solid #ccc", padding: "4px" }}>
+    <div
+      style={{
+        width: "300px",
+        borderLeft: "1px solid #ccc",
+        padding: "4px",
+        overflowY: "auto"
+      }}
+    >
       <h3>Benchmarks</h3>
-      <div>Not implemented</div>
+      <button onClick={runAll} disabled={running} style={{ marginBottom: "8px" }}>
+        {running ? "Running..." : "Run all benchmarks"}
+      </button>
+      {Object.entries(results).map(([name, r]) => {
+        const max = Math.max(r.js.median, r.wasm.median);
+        return (
+          <div key={name} style={{ marginBottom: "12px" }}>
+            <div style={{ fontWeight: "bold" }}>{name}</div>
+            <div style={{ display: "flex", height: "8px", margin: "4px 0" }}>
+              <div
+                style={{
+                  background: "#f99",
+                  width: `${(r.js.median / max) * 100}%`,
+                  marginRight: "2px"
+                }}
+              />
+              <div
+                style={{
+                  background: "#9cf",
+                  width: `${(r.wasm.median / max) * 100}%`
+                }}
+              />
+            </div>
+            <div style={{ fontSize: "12px" }}>
+              Speedup: {r.speedup.toFixed(2)}x
+            </div>
+            <table
+              style={{
+                width: "100%",
+                fontSize: "10px",
+                borderCollapse: "collapse",
+                marginTop: "4px"
+              }}
+            >
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>min</th>
+                  <th>median</th>
+                  <th>mean</th>
+                  <th>stdev</th>
+                </tr>
+              </thead>
+              <tbody>
+                {engines.map((e) => (
+                  <tr key={e}>
+                    <td>{e}</td>
+                    <td>{r[e].min.toFixed(2)}</td>
+                    <td>{r[e].median.toFixed(2)}</td>
+                    <td>{r[e].mean.toFixed(2)}</td>
+                    <td>{r[e].stdev.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
     </div>
   );
 }

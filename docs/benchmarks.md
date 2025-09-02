@@ -1,0 +1,21 @@
+# Benchmarks
+
+The project includes a tiny harness to compare performance of the JavaScript
+interpreter against the generated WebAssembly. Benchmark programs live under
+`bench/programs` and can be executed from the **Benchmarks** panel in the web
+UI.
+
+## Programs
+
+- `fib_rec.tiny` – naive recursive Fibonacci.
+- `sum_tail.tiny` – tail recursive summation.
+- `hof_map_fold.tiny` – exercises higher‑order functions and closures.
+- `tuple_proj.tiny` – creates a tuple and repeatedly compares it to itself,
+  stressing tuple loads.
+
+## Running
+
+Open the web app and click **Run all benchmarks**. Each program is run in both
+engines with a warm‑up phase. The median execution time for the JS interpreter
+and the compiled Wasm module are shown along with min/mean/stdev statistics.
+Speedup is reported as `JS_time / Wasm_time`.
